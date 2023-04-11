@@ -80,8 +80,10 @@ p = process("make qemu-nox".split())
 points = 0
 errors = []
 
-if b"init: starting sh" not in p.recvuntil(b"init: starting sh\n$", timeout=10):
-    print("[!]Failed to start shell")
+try:
+    p.recvuntil(b"init: starting sh\n$", timeout=10)
+except:
+    print("[!]Failed to compile and start xv6 with testsuite")
     print(f"Your score: {points}")
     exit(1)
 
