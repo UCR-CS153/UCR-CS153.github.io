@@ -60,7 +60,7 @@ import re
 def populate_makefile(filename):
     c = open('Makefile', 'r').read()
     uprogs = re.findall(r'UPROGS=([\w\W]*)fs\.img: mkfs', c)[0].replace("\\\n",'').split()
-    uprogs.append(f'_{filename}')
+    uprogs.insert(0, f'_{filename}')
     uprogs = " ".join(uprogs)
     c = re.sub(r'UPROGS=([\w\W]*)fs\.img: mkfs', f'UPROGS={uprogs} \nfs.img: mkfs', c)
     open("Makefile", 'w').write(c)
@@ -84,6 +84,7 @@ try:
     p.recvuntil(b"init: starting sh\n$", timeout=10)
 except:
     print("[!]Failed to compile and start xv6 with testsuite")
+    print("[!]Compile log:", p.recvall().decode('latin-1'))
     print(f"Your score: {points}")
     exit(1)
 
