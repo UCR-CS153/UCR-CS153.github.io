@@ -58,7 +58,7 @@ import base64
 import re
 
 def populate_makefile(filename):
-    c = open('Makefile', 'r').read()
+    c = open('Makefile', 'r').read().replace(" -Werror", " ")
     uprogs = re.findall(r'UPROGS=([\w\W]*)fs\.img: mkfs', c)[0].replace("\\\n",'').split()
     uprogs.insert(0, f'_{filename}')
     uprogs = " ".join(uprogs)
