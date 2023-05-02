@@ -39,13 +39,11 @@ direction = None
 try:
     for _ in range(randint(5, 7)):
         p.sendline("lab2_autograde".encode())
-        p.recvuntil(b"\n")
 
         pids = []
         stamps = []
         for _ in range(3):
-            line = p.recvuntil(b"\n").decode()
-            # print(line)
+            line = p.recvline_regex(r"p i:(\d+) t:(\d+)".encode()).decode()
             pid, stamp = re.findall(r"p i:(\d+) t:(\d+)", line)[0]
             pids.append(int(pid))
             stamps.append(int(stamp))
