@@ -66,7 +66,7 @@ try:
 
         var = abs((diff1 / diff2) - 1)
         errors.append(var)
-        if var > 0.07 or diff1 < 3 or diff2 < 3:
+        if var > 0.15 or diff1 < 3 or diff2 < 3:
             raise Exception("")
         
 
