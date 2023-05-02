@@ -44,6 +44,7 @@ try:
         stamps = []
         for _ in range(3):
             line = p.recvline_regex(r"p i:(\d+) t:(\d+)".encode()).decode()
+            # print(line)
             pid, stamp = re.findall(r"p i:(\d+) t:(\d+)", line)[0]
             pids.append(int(pid))
             stamps.append(int(stamp))
@@ -54,6 +55,7 @@ try:
             cur_direction = 'd'
         else:
             raise Exception("")
+        # print(direction, cur_direction)
         if direction is None:
             direction = cur_direction
         elif direction != cur_direction:
@@ -64,7 +66,7 @@ try:
 
         var = abs((diff1 / diff2) - 1)
         errors.append(var)
-        if var > 0.1:
+        if var > 0.07 or diff1 < 3 or diff2 < 3:
             raise Exception("")
         
 
