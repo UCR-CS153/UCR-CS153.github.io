@@ -31,6 +31,6 @@ for i in repo_filer():
         # print(log_content)
         score = re.findall("Your score: (\d+) / 80", log_content)
         if score:
-            print( netid + score[0])
+            print( netid + score[0] + f",{wf.created_at}")
     except:
         print(netid + "0")
