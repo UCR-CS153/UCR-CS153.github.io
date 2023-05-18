@@ -36,7 +36,7 @@ except:
 
 try:
     addrs = {}
-    for _ in range(randint(30, 50)):
+    for _ in range(randint(50, 80)):
         arg_count = randint(1, 7)
         cmd = "lab3_autograde " + " ".join(map(str, range(arg_count)))
         p.sendline(cmd.encode())
@@ -55,11 +55,17 @@ try:
     keys = list(addrs.keys())
     keys.sort()
     last = 0x80000000
+    decending = False
     for k in keys:
         if int(addrs[k], 16) <= last:
-            last = int(addrs[k], 16)
+            _last = int(addrs[k], 16)
+            if _last != last:
+                decending = True
+            last = _last
         else:
             raise Exception("")
+    if not decending:
+        raise Exception("")
 
 
 except:
