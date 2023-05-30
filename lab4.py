@@ -37,7 +37,7 @@ except:
 try:
     cnts = []
     for _ in range(randint(10, 20)):
-        count = randint(5000, 10000)
+        count = randint(15000, 20000)
         cmd = f"lab4_autograde {count}"
         p.sendline(cmd.encode())
 
