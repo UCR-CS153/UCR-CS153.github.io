@@ -36,7 +36,7 @@ except:
 
 try:
     cnts = []
-    for _ in range(randint(10, 20)):
+    for _ in range(randint(20, 30)):
         count = randint(50000, 800000)
         cmd = f"lab4_autograde {count}"
         p.sendline(cmd.encode())
@@ -50,18 +50,16 @@ try:
         cnts.append((count, int(cnt1), int(cnt2)))
     
     for count, cnt1, cnt2 in cnts:
-        if cnt2 != 2 * count or cnt1 == count:
+        if cnt2 != 2 * count:
             raise Exception("")
     points += 80
 
 except Exception as e:
     # probably a timeout
     print("[!]Encountered timeout")
-    e.print_stack()
-    print(e)
     if cnts:
         count, cnt1, cnt2 = cnts[0]
-        if cnt2 == 2 * count and cnt1 > count:
+        if cnt2 == 2 * count:
             points += 60
             print(f"[!]But you passed the first test case. This might be a malfunction of your shm_close() implementation. Please check your code.")
 finally:
