@@ -54,9 +54,11 @@ try:
             raise Exception("")
     points += 80
 
-except:
+except Exception as e:
     # probably a timeout
     print("[!]Encountered timeout")
+    e.print_stack()
+    print(e)
     if cnts:
         count, cnt1, cnt2 = cnts[0]
         if cnt2 == 2 * count and cnt1 > count:
