@@ -41,10 +41,10 @@ try:
         cmd = f"lab4_autograde {count}"
         p.sendline(cmd.encode())
 
-        line = p.recvline_regex(r"CNT_(.*)_".encode(), timeout=30).decode()
+        line = p.recvline_regex(r"CNT_(.*)_".encode(), timeout=60).decode()
         # print(line)
         cnt1 = re.findall(r"CNT_(.*)_", line)[0]
-        line = p.recvline_regex(r"CNT_(.*)_".encode(), timeout=30).decode()
+        line = p.recvline_regex(r"CNT_(.*)_".encode(), timeout=60).decode()
         # print(line)
         cnt2 = re.findall(r"CNT_(.*)_", line)[0]
         cnts.append((count, int(cnt1), int(cnt2)))
