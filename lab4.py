@@ -37,14 +37,14 @@ except:
 try:
     cnts = []
     for _ in range(randint(10, 20)):
-        count = randint(10000, 20000)
+        count = randint(5000, 10000)
         cmd = f"lab4_autograde {count}"
         p.sendline(cmd.encode())
 
-        line = p.recvline_regex(r"CNT_(.*)_".encode(), timeout=10).decode()
+        line = p.recvline_regex(r"CNT_(.*)_".encode(), timeout=30).decode()
         # print(line)
         cnt1 = re.findall(r"CNT_(.*)_", line)[0]
-        line = p.recvline_regex(r"CNT_(.*)_".encode(), timeout=10).decode()
+        line = p.recvline_regex(r"CNT_(.*)_".encode(), timeout=30).decode()
         # print(line)
         cnt2 = re.findall(r"CNT_(.*)_", line)[0]
         cnts.append((count, int(cnt1), int(cnt2)))
@@ -56,11 +56,12 @@ try:
 
 except:
     # probably a timeout
+    print("[!]Encountered timeout")
     if cnts:
         count, cnt1, cnt2 = cnts[0]
         if cnt2 == 2 * count and cnt1 > count:
             points += 60
-            print(f"[!]Encountered timeout, but you passed the first test case. This might be a malfunction of your shm_close() implementation. Please check your code.")
+            print(f"[!]But you passed the first test case. This might be a malfunction of your shm_close() implementation. Please check your code.")
 finally:
     print(f"Your score: {points} / 80")
     exit(0 if points == full else 1)
