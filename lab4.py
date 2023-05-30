@@ -64,5 +64,5 @@ except Exception as e:
             print(f"[!]But you passed the first test case. This might be a malfunction of your shm_close() implementation. Please check your code.")
 finally:
     print(f"Your score: {points} / 80")
-    print(cnts)
+    # print(cnts)
     exit(0 if points == full else 1)
