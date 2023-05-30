@@ -4,7 +4,7 @@ import base64
 import re
 from random import randint
 
-code = "I2luY2x1ZGUgInR5cGVzLmgiCiNpbmNsdWRlICJzdGF0LmgiCiNpbmNsdWRlICJ1c2VyLmgiCiNpbmNsdWRlICJ1c3BpbmxvY2suaCIKc3RydWN0IHNobV9jbnQgeyBzdHJ1Y3QgdXNwaW5sb2NrIGxvY2s7IGludCBjbnQ7fTtpbnQgbWFpbihpbnQgYXJnYywgY2hhciAqYXJndltdKXtpbnQgcGlkO2ludCBpPTA7c3RydWN0IHNobV9jbnQgKmNvdW50ZXI7aW50IG1heCA9IGF0b2koYXJndlsxXSk7IHBpZD1mb3JrKCk7IHNsZWVwKDEpO3NobV9vcGVuKDEsKGNoYXIgKiopJmNvdW50ZXIpOyAgZm9yKGkgPSAwOyBpIDwgbWF4OyBpKyspeyB1YWNxdWlyZSgmKGNvdW50ZXItPmxvY2spKTsgY291bnRlci0+Y250Kys7IHVyZWxlYXNlKCYoY291bnRlci0+bG9jaykpOyBpZihpJTEwMDAgPT0gMCkgcHJpbnRmKDEsIiIpOyB9IHVhY3F1aXJlKCYoY291bnRlci0+bG9jaykpOyBwcmludGYoMSwgIlxuQ05UXyVkX1xuIiwgY291bnRlci0+Y250KTsgdXJlbGVhc2UoJihjb3VudGVyLT5sb2NrKSk7IGlmKHBpZCl7IHdhaXQoKTsgfSBzaG1fY2xvc2UoMSk7IGV4aXQoKTsgcmV0dXJuIDA7fQ=="
+code = "I2luY2x1ZGUgInR5cGVzLmgiCiNpbmNsdWRlICJzdGF0LmgiCiNpbmNsdWRlICJ1c2VyLmgiCiNpbmNsdWRlICJ1c3BpbmxvY2suaCIKc3RydWN0IHNobV9jbnQgeyBzdHJ1Y3QgdXNwaW5sb2NrIGxvY2s7IGludCBjbnQ7fTtpbnQgbWFpbihpbnQgYXJnYywgY2hhciAqYXJndltdKXtpbnQgcGlkO2ludCBpPTA7c3RydWN0IHNobV9jbnQgKmNvdW50ZXI7aW50IG1heCA9IGF0b2koYXJndlsxXSk7IHBpZD1mb3JrKCk7IHNsZWVwKDEpO3NobV9vcGVuKDEsKGNoYXIgKiopJmNvdW50ZXIpOyAgZm9yKGkgPSAwOyBpIDwgbWF4OyBpKyspeyB1YWNxdWlyZSgmKGNvdW50ZXItPmxvY2spKTsgY291bnRlci0+Y250Kys7IGlmKGklMTAwMCA9PSAwKSBwcmludGYoMSwiLSIpOyB1cmVsZWFzZSgmKGNvdW50ZXItPmxvY2spKTt9IHVhY3F1aXJlKCYoY291bnRlci0+bG9jaykpOyBwcmludGYoMSwgIlxuQ05UXyVkX1xuIiwgY291bnRlci0+Y250KTsgdXJlbGVhc2UoJihjb3VudGVyLT5sb2NrKSk7IGlmKHBpZCl7IHdhaXQoKTsgfSBzaG1fY2xvc2UoMSk7IGV4aXQoKTsgcmV0dXJuIDA7fQ=="
 
 def populate_makefile(filename):
     c = open('Makefile', 'r').read().replace(" -Werror", " ")
@@ -37,7 +37,7 @@ except:
 try:
     cnts = []
     for _ in range(randint(10, 20)):
-        count = randint(15000, 20000)
+        count = randint(50000, 800000)
         cmd = f"lab4_autograde {count}"
         p.sendline(cmd.encode())
 
