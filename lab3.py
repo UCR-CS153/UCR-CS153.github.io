@@ -3,6 +3,7 @@ import yaml
 import base64
 import re
 from random import randint
+from os import system
 
 code = "I2luY2x1ZGUgInR5cGVzLmgiCiNpbmNsdWRlICJzdGF0LmgiCiNpbmNsdWRlICJ1c2VyLmgiCmludCBtYWluKGludCBhcmdjLCBjaGFyICphcmd2W10pCnsKICBpbnQgaSA9IGFyZ2M7CiAgcHJpbnRmKDEsICJBRERSOl8lcF9cbiIsICZpKTsKICBleGl0KCk7Cn0K"
 
@@ -21,6 +22,8 @@ populate_makefile("lab3_autograde")
 
 with open("lab3_autograde.c", 'wb') as f:   
     f.write(code)
+
+system("make clean")
 
 p = process("make qemu-nox".split())
 
