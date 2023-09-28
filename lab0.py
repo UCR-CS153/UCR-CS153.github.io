@@ -2,8 +2,8 @@ rubrics = r"""
 - points: 10
   cmd: "ls"
   expect: "echo"
-  note: "Test failed"
-  name: "Unable to run a command"
+  note: "Unable to run a command"
+  name: "Run `ls` command"
 """
 
 
