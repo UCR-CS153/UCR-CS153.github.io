@@ -12,9 +12,12 @@ from pwn import *
 import yaml
 import base64
 import re
+import os
 
 rubrics = yaml.safe_load(rubrics)
 full = 0
+
+os.system("touch README")
 
 p = process("make qemu-nox".split())
 
