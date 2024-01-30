@@ -79,4 +79,4 @@ except:
 print(f"[!]Errors for your scheudler: {sum(errors)/len(errors):.2f}")
 print("[!]All check passed!")
 print("=======")
-print(f"Your score: 75 / 75")
+print(f"Your score: 70 / 70")
