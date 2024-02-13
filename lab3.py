@@ -5,8 +5,10 @@ import re
 from random import randint
 from os import system
 
-code = "I2luY2x1ZGUgInR5cGVzLmgiCiNpbmNsdWRlICJzdGF0LmgiCiNpbmNsdWRlICJ1c2VyLmgiCmludCBtYWluKGludCBhcmdjLCBjaGFyICphcmd2W10pCnsKICBpbnQgaSA9IGFyZ2M7CiAgcHJpbnRmKDEsICJBRERSOl8lcF9cbiIsICZpKTsKICBleGl0KCk7Cn0K"
+# code = "I2luY2x1ZGUgInR5cGVzLmgiCiNpbmNsdWRlICJzdGF0LmgiCiNpbmNsdWRlICJ1c2VyLmgiCmludCBtYWluKGludCBhcmdjLCBjaGFyICphcmd2W10pCnsKICBpbnQgaSA9IGFyZ2M7CiAgcHJpbnRmKDEsICJBRERSOl8lcF9cbiIsICZpKTsKICBleGl0KCk7Cn0K"
 
+# test program with stack growth
+code = "I2luY2x1ZGUgInR5cGVzLmgiCiNpbmNsdWRlICJ1c2VyLmgiCgppbnQgdGVzdChpbnQgbikgeyAKICAgIGludCB4ID0gbiArIDE7CiAgICByZXR1cm4geDsKfQoKaW50IHRlc3QyKGludCBuKSB7CiAgICBpbnQgYVsxMDEzXSA9IHswfTsKICAgIHByaW50ZigxLCAiVGVzdCAyOiBhcnJheSBhIGlzIGF0ICVwXG4iLCBhKTsKICAgIC8vcHJpbnRmKDEsICJUZXN0IDI6IHRoZSBmaXJzdCB2YWx1ZSBpcyAlZFxuIiwgYVswXSk7CiAgICBpZihuPDIpCiAgICAgIHJldHVybiBuOwogICAgZWxzZQogICAgICByZXR1cm4gdGVzdDIobi0xKSsxOwp9CgppbnQgbWFpbihpbnQgYXJnYywgY2hhciAqYXJndltdKSB7CiAgICBpbnQgb3B0aW9uID0gYXRvaShhcmd2WzFdKTsKICAgIGludCBudW0gPSBhdG9pKGFyZ3ZbMl0pOwoKICAgIGlmIChvcHRpb24gPT0gMSl7CiAgICAgICAgaW50IGkgPSBhcmdjOwogICAgICAgIHByaW50ZigxLCAiQUREUjpfJXBfXG4iLCAmaSk7CiAgICAgICAgZXhpdCgpOwogICAgfQoKICAgIHByaW50ZigxLCAiVGVzdCAyOiBTdGFjayBncm93dGggdGVzdC5cbiIpOwogICAgCiAgICBwcmludGYoMSwgInRlc3QyOl8lZF9cbiIsIHRlc3QyKG51bSkpOwogICAgZXhpdCgpOwp9Cgo="
 def populate_makefile(filename):
     c = open('Makefile', 'r').read().replace(" -Werror", " ")
     uprogs = re.findall(r'UPROGS=([\w\W]*)fs\.img: mkfs', c)[0].replace("\\\n",'').split()
@@ -41,7 +43,8 @@ try:
     addrs = {}
     for _ in range(randint(50, 80)):
         arg_count = randint(1, 7)
-        cmd = "lab3_autograde " + " ".join(map(str, range(arg_count)))
+        # Option 1 for testing new stack layout
+        cmd = "lab3_autograde 1 " + " ".join(map(str, range(arg_count)))
         p.sendline(cmd.encode())
 
         pids = []
@@ -54,7 +57,8 @@ try:
             raise Exception("")
         else:
             addrs[arg_count] = addr
-
+    print(cmd)
+    print(addrs)
     keys = list(addrs.keys())
     keys.sort()
     last = 0x80000000
@@ -69,13 +73,31 @@ try:
             raise Exception("")
     if not decending:
         raise Exception("")
+    
+    points += 75
+    print("=======")
+    print(f"New stack layout passed. Your score: {points} / 80")
+    
+    # Testing for stack growth
+    count = randint(50, 100)
+    cmd = f"lab3_autograde 2 {count}"
+    p.sendline(cmd.encode())
+
+    line = p.recvline_regex(r"test2:_(.*)_".encode(), timeout=1).decode()
+    ret = re.findall(r"test2:_(.*)_", line)[0]
+
+    if not int(ret) == count:
+        raise Exception("Stack growth failed")
+    
+    points += 5
 
 
-except:
+except Exception as e:
+    print(e)
     print("[!]Verfiication does not pass")
-    print(f"Your score: 0 / 80")
+    print(f"Your score: {points} / 80")
     exit(1)
 
 print("[!]All check passed!")
 print("=======")
-print(f"Your score: 80 / 80")
+print(f"Your score: {points} / 80")
