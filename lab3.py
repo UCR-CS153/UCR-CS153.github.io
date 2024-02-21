@@ -93,11 +93,16 @@ try:
 
 
 except Exception as e:
-    print(e)
-    print("[!]Verfiication does not pass")
-    print(f"Your score: {points} / 80")
-    exit(1)
+    if points == 75:
+        print("[!]Stack growth test does not pass")
+        print(f"Your score: {points} / 80")
+    else:
+        print(e)
+        print("[!]Verfiication does not pass")
+        print(f"Your score: {points} / 80")
+        exit(1)
+    
 
-print("[!]All check passed!")
+print("[!]All check finished!")
 print("=======")
 print(f"Your score: {points} / 80")
