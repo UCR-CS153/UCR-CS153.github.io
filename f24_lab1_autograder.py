@@ -24,7 +24,7 @@ rubrics_part1 = r"""
 
 - points: 10
   cmd: "test_getfamily 3"
-  expect: "Parent: 12\nSiblings: 14 15 \nChildren: 16 17 \n$"
+  expect: "Parent: 12\nSiblings: 14 15 \nChildren: 16 17 \n"
   note: "[getfamily] getfamily failed on test case 3 "
   name: "Test 3: getfamily - Two Siblings, Two Children"
 """
