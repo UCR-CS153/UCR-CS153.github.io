@@ -130,7 +130,7 @@ def run_test(code, program, rubrics, points):
                 print("Your output: ")
                 if "cmd" in rubric:
                     p.sendline(rubric["cmd"].encode()
-                recv = p.recvall(timeout=20).decode('latin-1)
+                recv = p.recvall(timeout=20).decode('latin-1')
                 print(repr(recv))
                 raise Exception("Wrong output")
             points += rubric["points"]
