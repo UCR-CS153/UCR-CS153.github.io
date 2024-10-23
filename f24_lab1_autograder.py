@@ -126,11 +126,11 @@ def run_test(code, program, rubrics, points):
             recv = p.recvuntil(rubric["expect"].encode(), timeout=20).decode('latin-1')
             # recv = p.recvall(timeout=20).decode('latin-1')
             if rubric["expect"] not in recv:
-                print("Expect output: " +  repr(rubric["expect"]))
-                print("Your output: ")
                 if "cmd" in rubric:
                     p.sendline(rubric["cmd"].encode())
                 recv = p.recvall(timeout=20).decode('latin-1')
+                print("Expect output: " +  repr(rubric["expect"]))
+                print("Your output: ")
                 print(repr(recv))
                 raise Exception("Wrong output")
             points += rubric["points"]
