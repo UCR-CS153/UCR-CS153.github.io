@@ -129,7 +129,7 @@ def run_test(code, program, rubrics, points):
                 print("Expect output: " +  repr(rubric["expect"]))
                 print("Your output: ")
                 if "cmd" in rubric:
-                    p.sendline(rubric["cmd"].encode()
+                    p.sendline(rubric["cmd"].encode())
                 recv = p.recvall(timeout=20).decode('latin-1')
                 print(repr(recv))
                 raise Exception("Wrong output")
