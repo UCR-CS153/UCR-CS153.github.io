@@ -1,0 +1,28 @@
+cd /workspaces/lab1-*
+hash=$(md5sum .github/workflows/classroom.yml | awk '{ print $1 }')
+workflows="bmFtZTogTGFiMSBBdXRvZ3JhZGVyCgpvbjoKICBwdXNoOgogICAgYnJhbmNoZXM6CiAgICAgIC0g
+bWFzdGVyCgpqb2JzOgogIHJ1bi1zY3JpcHQ6CiAgICBydW5zLW9uOiB1YnVudHUtbGF0ZXN0Cgog
+ICAgc3RlcHM6CiAgICAtIG5hbWU6IENoZWNrb3V0IGNvZGUKICAgICAgdXNlczogYWN0aW9ucy9j
+aGVja291dEB2NAoKICAgIC0gbmFtZTogSW5zdGFsbCBRZW11CiAgICAgIHVzZXM6IGF3YWxzaDEy
+OC9jYWNoZS1hcHQtcGtncy1hY3Rpb25AbGF0ZXN0CiAgICAgIHdpdGg6CiAgICAgICAgcGFja2Fn
+ZXM6IHFlbXUtc3lzdGVtLXg4NgogICAgICAgIHZlcnNpb246IDEuMAogICAgICAgIGV4ZWN1dGVf
+aW5zdGFsbF9zY3JpcHRzOiB0cnVlCiAgICAgIAogICAgLSBuYW1lOiBJbmplY3QgcGlwIGRlcGVu
+ZGVuY2llcwogICAgICBydW46IHwKICAgICAgICBlY2hvIHB3bnRvb2xzID4gcmVxdWlyZW1lbnRz
+LnR4dAogICAgICAgIGVjaG8gUHlZQU1MID4+IHJlcXVpcmVtZW50cy50eHQKCiAgICAtIG5hbWU6
+IFNldCB1cCBQeXRob24KICAgICAgdXNlczogYWN0aW9ucy9zZXR1cC1weXRob25AdjQKICAgICAg
+d2l0aDoKICAgICAgICBweXRob24tdmVyc2lvbjogJzMuMTAnCiAgICAgICAgY2FjaGU6ICdwaXAn
+CgogICAgLSBuYW1lOiBJbnN0YWxsIHBpcCBkZXBlbmRlbmNpZXMKICAgICAgcnVuOiB8CiAgICAg
+ICAgcGlwIGluc3RhbGwgcHdudG9vbHMgUHlZQU1MCgogICAgLSBuYW1lOiBEb3dubG9hZCBhbmQg
+cnVuIHNjcmlwdAogICAgICBydW46IHwgCiAgICAgICAgd2dldCBodHRwczovL3Vjci1jczE1My5n
+aXRodWIuaW8vczI1L2xhYjFfYXV0b2dyYWRlci5weSA+IC9kZXYvbnVsbCAgMj4mMQogICAgICAg
+IHB5dGhvbjMgbGFiMV9hdXRvZ3JhZGVyLnB5CgogICAgLSBuYW1lOiBDbGVhbiB1cAogICAgICBy
+dW46IHwKICAgICAgICBybSAtZiBsYWIxX2F1dG9ncmFkZXIucHkKICAgICAgICBybSAtZiB0ZXN0
+Xy4q"
+if [ "$hash" == "effbc28b6f26e490e892d592846aa915" ]; then
+    echo "The file is okay, you are good to go!"
+    exit 0
+else
+    echo "Fixing the file..."
+    echo "$workflows" | base64 -d > .github/workflows/classroom.yml
+    echo "The file has been fixed."
+fi
