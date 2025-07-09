@@ -195,7 +195,7 @@ def run_test(code, program, rubrics, points):
                 if "cmd" in rubric:
                     p.sendline(rubric["cmd"].encode())
                 recv = p.recvall(timeout=20).decode('latin-1')
-                print("Expect output: " +  repr(rubric["expect"]))
+                print("Expect output: \n" +  repr(rubric["expect"]) + "\n")
                 print("Your output: ")
                 print(repr(recv))
                 raise Exception("Wrong output")
@@ -226,3 +226,5 @@ point23 = run_test(code_test_part23, "test_exit_wait", rubrics_part23, 0)
 print(f"---> Your total score: {point1 + point23} / 100")
 point4 = run_test(code_test_part4, "lab1_autograde", rubrics_part4, 0)
 print(f"---> Your total score: {point1 + point23 + point4} / 100")
+if point1+point23+point4 != 100:
+  exit(1)
