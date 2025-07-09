@@ -3,40 +3,30 @@ import base64
 import re
 from pwn import *
 
-$ lab1_test_getparents 0
-2 1 
-$ lab1_test_getparents 1
-4 2 1 
-$ lab1_test_getparents 2 
-7 6 2 1 
-$ lab1_test_getparents 3
-11 10 9 2 1 
-10 9 2 1 
-
 rubrics_part1 = r"""
 - points: 5
   cmd: "test_getparents 0"
   expect: "2 1 \n$"
   note: "[getparents] getparents failed on test case 0 "
-  name: "Test 0: getparents - No Fork"
+  name: "Test 0: getparents - No fork"
 
 - points: 5
   cmd: "test_getparents 1"
   expect: "4 2 1 \n$"
   note: "[getparents] getparents failed on test case 1 "
-  name: "Test 1: getparents - One Fork"
+  name: "Test 1: getparents - One fork"
 
 - points: 5
   cmd: "test_getparents 2"
   expect: "7 6 2 1 \n$"
   note: "[getparents] getparents failed on test case 2 "
-  name: "Test 2: getparents - Two Forks"
+  name: "Test 2: getparents - Two forks"
 
 - points: 10
   cmd: "test_getparents 3"
   expect: "11 10 9 2 1 \n10 9 2 1 \n$"
   note: "[getparents] getparents failed on test case 3 "
-  name: "Test 3: getparents - More Forks"
+  name: "Test 3: getparents - More forks"
 """
 
 rubrics_part23 = r"""
@@ -106,17 +96,17 @@ rubrics_part4 = r"""
 
 code_test_part1 = """
 I2luY2x1ZGUgInR5cGVzLmgiCiNpbmNsdWRlICJzdGF0LmgiCiNpbmNsdWRlICJ1c2VyLmgiCgp2b2lkIHRlc3Rfbm9fZm9yaygpOwp2b2lkIHRlc3Rfb25lX2ZvcmsoKTsKdm9pZCB0ZXN0X3R3b19mb3JrcygpOwp2b2lkIHRlc3R
-fbW9yZV9mb3JrcygpOwoKaW50IG1haW4oaW50IGFyZ2MsIGNoYXIgKmFyZ3ZbXSkgewogICAgaWYgKGFyZ2MgPCAyKSB7CiAgICAgICAgcHJpbnRmKDEsICJVc2FnZTogdGVzdF9nZXRmYW1pbHkgPHRlc3RfbnVtYmVyPlxuIik7Ci
-AgICAgICAgZXhpdCgwKTsKICAgIH0KCiAgICBpbnQgdGVzdF9jYXNlID0gYXRvaShhcmd2WzFdKTsKCiAgICBzd2l0Y2godGVzdF9jYXNlKSB7CiAgICAgICAgY2FzZSAwOgogICAgICAgICAgICB0ZXN0X25vX2ZvcmsoKTsKICAgI
-CAgICAgICAgYnJlYWs7CiAgICAgICAgY2FzZSAxOgogICAgICAgICAgICB0ZXN0X29uZV9mb3JrKCk7CiAgICAgICAgICAgIGJyZWFrOwogICAgICAgIGNhc2UgMjoKICAgICAgICAgICAgdGVzdF90d29fZm9ya3MoKTsKICAgICAg
-ICAgICAgYnJlYWs7CiAgICAgICAgY2FzZSAzOgogICAgICAgICAgICB0ZXN0X21vcmVfZm9ya3MoKTsKICAgICAgICAgICAgYnJlYWs7CiAgICAgICAgZGVmYXVsdDoKICAgICAgICAgICAgcHJpbnRmKDEsICJUaGUgYXJndW1lbnQ
-gaXMgbm90IGNvcnJlY3QhXG4iKTsKICAgICAgICAgICAgZXhpdCgwKTsKICAgIH0KCiAgICBleGl0KDApOwp9CgovLyBUZXN0IGNhc2UgMAp2b2lkIHRlc3Rfbm9fZm9yaygpIHsKICAgIGdldHBhcmVudHMoKTsgIAp9CgovLyBUZX
-N0IGNhc2UgMQp2b2lkIHRlc3Rfb25lX2ZvcmsoKSB7CiAgICBpbnQgcGlkMSwgcGlkMzsKCiAgICBwaWQxID0gZm9yaygpOwogICAgaWYgKHBpZDEgPT0gMCkgewogICAgICAgIGdldHBhcmVudHMoKTsKICAgICAgICBleGl0KDApO
-wogICAgfQoKICAgIHdhaXQoMCk7Cn0KCi8vIFRlc3QgY2FzZSAyCnZvaWQgdGVzdF90d29fZm9ya3MoKSB7CiAgICBpbnQgcGlkMSwgcGlkMjsKCiAgICBwaWQxID0gZm9yaygpOwogICAgaWYgKHBpZDEgPT0gMCkgewogICAgICAg
-IHBpZDIgPSBmb3JrKCk7CiAgICAgICAgaWYgKHBpZDIgPT0gMCkgewogICAgICAgICAgICBnZXRwYXJlbnRzKCk7CiAgICAgICAgICAgIGV4aXQoMCk7CiAgICAgICAgfQoKICAgICAgICB3YWl0KDApOwoKICAgICAgICBleGl0KDA
-pOwogICAgfQoKICAgIHdhaXQoMCk7Cn0KCi8vIFRlc3QgY2FzZSAzIAp2b2lkIHRlc3RfbW9yZV9mb3JrcygpIHsKICAgIGludCBwaWQxLCBwaWQyOwoKICAgIHBpZDEgPSBmb3JrKCk7CiAgICBpZiAocGlkMSA9PSAwKSB7CiAgIC
-AgICAgcGlkMiA9IGZvcmsoKTsKICAgICAgICBpZiAocGlkMiA9PSAwKSB7CiAgICAgICAgICAgIGZvcmsoKTsKICAgICAgICAgICAgd2FpdCgpOwogICAgICAgICAgICBnZXRwYXJlbnRzKCk7CiAgICAgICAgICAgIHNsZWVwKDEpO
-wogICAgICAgICAgICBleGl0KDApOwogICAgICAgIH0KCiAgICAgICAgd2FpdCgwKTsKCiAgICAgICAgZXhpdCgwKTsKICAgIH0KCiAgICB3YWl0KDApOwogICAgZXhpdCgwKTsKfQ==
+fbW9yZV9mb3JrcygpOwoKaW50IG1haW4oaW50IGFyZ2MsIGNoYXIgKmFyZ3ZbXSkgewogICAgaWYgKGFyZ2MgPCAyKSB7CiAgICAgICAgcHJpbnRmKDEsICJVc2FnZTogdGVzdF9nZXRwYXJlbnRzIDx0ZXN0X251bWJlcj5cbiIpOw
+ogICAgICAgIGV4aXQoMCk7CiAgICB9CgogICAgaW50IHRlc3RfY2FzZSA9IGF0b2koYXJndlsxXSk7CgogICAgc3dpdGNoKHRlc3RfY2FzZSkgewogICAgICAgIGNhc2UgMDoKICAgICAgICAgICAgdGVzdF9ub19mb3JrKCk7CiAgI
+CAgICAgICAgIGJyZWFrOwogICAgICAgIGNhc2UgMToKICAgICAgICAgICAgdGVzdF9vbmVfZm9yaygpOwogICAgICAgICAgICBicmVhazsKICAgICAgICBjYXNlIDI6CiAgICAgICAgICAgIHRlc3RfdHdvX2ZvcmtzKCk7CiAgICAg
+ICAgICAgIGJyZWFrOwogICAgICAgIGNhc2UgMzoKICAgICAgICAgICAgdGVzdF9tb3JlX2ZvcmtzKCk7CiAgICAgICAgICAgIGJyZWFrOwogICAgICAgIGRlZmF1bHQ6CiAgICAgICAgICAgIHByaW50ZigxLCAiVGhlIGFyZ3VtZW5
+0IGlzIG5vdCBjb3JyZWN0IVxuIik7CiAgICAgICAgICAgIGV4aXQoMCk7CiAgICB9CgogICAgZXhpdCgwKTsKfQoKLy8gVGVzdCBjYXNlIDAKdm9pZCB0ZXN0X25vX2ZvcmsoKSB7CiAgICBnZXRwYXJlbnRzKCk7ICAKfQoKLy8gVG
+VzdCBjYXNlIDEKdm9pZCB0ZXN0X29uZV9mb3JrKCkgewogICAgaW50IHBpZDE7CgogICAgcGlkMSA9IGZvcmsoKTsKICAgIGlmIChwaWQxID09IDApIHsKICAgICAgICBnZXRwYXJlbnRzKCk7CiAgICAgICAgZXhpdCgwKTsKICAgI
+H0KCiAgICB3YWl0KDApOwp9CgovLyBUZXN0IGNhc2UgMgp2b2lkIHRlc3RfdHdvX2ZvcmtzKCkgewogICAgaW50IHBpZDEsIHBpZDI7CgogICAgcGlkMSA9IGZvcmsoKTsKICAgIGlmIChwaWQxID09IDApIHsKICAgICAgICBwaWQy
+ID0gZm9yaygpOwogICAgICAgIGlmIChwaWQyID09IDApIHsKICAgICAgICAgICAgZ2V0cGFyZW50cygpOwogICAgICAgICAgICBleGl0KDApOwogICAgICAgIH0KCiAgICAgICAgd2FpdCgwKTsKCiAgICAgICAgZXhpdCgwKTsKICA
+gIH0KCiAgICB3YWl0KDApOwp9CgovLyBUZXN0IGNhc2UgMyAKdm9pZCB0ZXN0X21vcmVfZm9ya3MoKSB7CiAgICBpbnQgcGlkMSwgcGlkMjsKCiAgICBwaWQxID0gZm9yaygpOwogICAgaWYgKHBpZDEgPT0gMCkgewogICAgICAgIH
+BpZDIgPSBmb3JrKCk7CiAgICAgICAgaWYgKHBpZDIgPT0gMCkgewogICAgICAgICAgICBmb3JrKCk7CiAgICAgICAgICAgIHdhaXQoMCk7CiAgICAgICAgICAgIGdldHBhcmVudHMoKTsKICAgICAgICAgICAgc2xlZXAoMSk7CiAgI
+CAgICAgICAgIGV4aXQoMCk7CiAgICAgICAgfQoKICAgICAgICB3YWl0KDApOwoKICAgICAgICBleGl0KDApOwogICAgfQoKICAgIHdhaXQoMCk7CiAgICBleGl0KDApOwp9
 """
 
 code_test_part23 = """I2luY2x1ZGUgInR5cGVzLmgiCiNpbmNsdWRlICJzdGF0LmgiCiNpbmNsdWRlICJ1c2VyLmgiCgp2b2lkIHRlc3Rfc2ltcGxlX2V4aXRfd2FpdChpbnQgc3RhdHVzKSB7CiAgICBpbnQgcGlkID0gZm9yaygpOwogICAgaWYgKHBpZC
@@ -219,11 +209,11 @@ def run_test(code, program, rubrics, points):
             print("    " + error)
     else:
         print("[!] All check passed!")
-    print("=======")
-    print(f"Your score: {points} / {full}")
+    # print("=======")
+    # print(f"Your score: {points} / {full}")
 
-    if errors:
-        exit(1)
+    # if errors:
+    #     exit(1)
 
     p.terminate()
     p.kill()

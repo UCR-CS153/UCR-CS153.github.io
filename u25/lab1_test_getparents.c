@@ -9,8 +9,8 @@ void test_more_forks();
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        printf(1, "Usage: test_getfamily <test_number>\n");
-        exit(0);
+        printf(1, "Usage: test_getparents <test_number>\n");
+        exit();
     }
 
     int test_case = atoi(argv[1]);
@@ -30,10 +30,10 @@ int main(int argc, char *argv[]) {
             break;
         default:
             printf(1, "The argument is not correct!\n");
-            exit(0);
+            exit();
     }
 
-    exit(0);
+    exit();
 }
 
 // Test case 0
@@ -43,15 +43,15 @@ void test_no_fork() {
 
 // Test case 1
 void test_one_fork() {
-    int pid1, pid3;
+    int pid1;
 
     pid1 = fork();
     if (pid1 == 0) {
         getparents();
-        exit(0);
+        exit();
     }
 
-    wait(0);
+    wait();
 }
 
 // Test case 2
@@ -63,15 +63,15 @@ void test_two_forks() {
         pid2 = fork();
         if (pid2 == 0) {
             getparents();
-            exit(0);
+            exit();
         }
 
-        wait(0);
+        wait();
 
-        exit(0);
+        exit();
     }
 
-    wait(0);
+    wait();
 }
 
 // Test case 3 
@@ -86,14 +86,14 @@ void test_more_forks() {
             wait();
             getparents();
             sleep(1);
-            exit(0);
+            exit();
         }
 
-        wait(0);
+        wait();
 
-        exit(0);
+        exit();
     }
 
-    wait(0);
-    exit(0);
+    wait();
+    exit();
 }
