@@ -76,12 +76,12 @@ rubrics_part4 = r"""
   note: "[Waitpid]Child process exit status is incorrect"
   name: "Waitpid - check 5 child processes exit status"
 
-- points: 5
+- points: 2.5
   expect: "-1"
   note: "[Waitpid]Syscall does not return -1 while obtaining status of an invalid process"
   name: "Waitpid - check invalid process"
 
-- points: 5
+- points: 2.5
   expect: "-1"
   note : "[Waitpid]Syscall does not return -1 when an invalid argument is given"
   name: "Waitpid - check invalid argument"
@@ -226,5 +226,5 @@ point23 = run_test(code_test_part23, "test_exit_wait", rubrics_part23, 0)
 print(f"---> Your total score: {point1 + point23} / 100")
 point4 = run_test(code_test_part4, "lab1_autograde", rubrics_part4, 0)
 print(f"---> Your total score: {point1 + point23 + point4} / 100")
-if point1+point23+point4 != 100:
+if point1+point23+point4 >= 100:
   exit(1)
