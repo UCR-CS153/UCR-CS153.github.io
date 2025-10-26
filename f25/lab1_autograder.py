@@ -65,10 +65,20 @@ def populate_makefile(filename):
     c = re.sub(r'UPROGS=([\w\W]*)fs\.img: mkfs', f'UPROGS={uprogs} \nfs.img: mkfs', c)
     open("Makefile", 'w').write(c)
 
+def post_to_gh(obtained, total):
+  """
+  Write points to for GitHub Actions
+  """
+  with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+      out.write(f'points={obtained}\n')
+      out.write(f'total_points={total}\n')
+
 code = base64.b64decode(code)
 
 rubrics = yaml.safe_load(rubrics)
 full = 0
+for rubric in rubrics:
+    full += rubric["points"]
 
 populate_makefile("lab1_autograde")
 
@@ -85,13 +95,13 @@ try:
 except:
     print("[!]Failed to compile and start xv6 with testsuite")
     print("[!]Compile log:", p.recvall().decode('latin-1'))
-    print(f"Your score: {points}")
+    print(f"Your score: {points} / {full}")
+    post_to_gh(points, full)
     exit(1)
 
 
 for rubric in rubrics:
     print(f"[!]Checking [{rubric['name']}]")
-    full += rubric["points"]
     try:
         if "cmd" in rubric:
             p.sendline(rubric["cmd"].encode())
@@ -110,6 +120,7 @@ else:
     print("[!]All check passed!")
 print("=======")
 print(f"Your score: {points} / {full}")
+post_to_gh(points, full)
 
 if errors:
     exit(1)
