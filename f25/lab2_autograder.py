@@ -89,4 +89,4 @@ except:
 print(f"[!]Errors for your scheudler: {sum(errors)/len(errors):.2f}")
 print("[!]All check passed!")
 print("=======")
-post_to_gh(0, 70)
+post_to_gh(70, 70)
