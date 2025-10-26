@@ -72,6 +72,8 @@ def post_to_gh(obtained, total):
   with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
       out.write(f'points={obtained}\n')
       out.write(f'total_points={total}\n')
+  print(f"::notice title=Autograding complete::Points {obtained}/{total}")
+  print(f"::notice title=Autograding report::{{\"totalPoints\":{obtained},\"maxPoints\":{total}}}")
 
 code = base64.b64decode(code)
 
