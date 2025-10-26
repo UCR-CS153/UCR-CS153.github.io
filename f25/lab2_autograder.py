@@ -13,6 +13,16 @@ def populate_makefile(filename):
     c = re.sub(r'UPROGS=([\w\W]*)fs\.img: mkfs', f'UPROGS={uprogs} \nfs.img: mkfs', c)
     open("Makefile", 'w').write(c)
 
+def post_to_gh(obtained, total):
+  """
+  Write points to for GitHub Actions
+  """
+  with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+      out.write(f'points={obtained}\n')
+      out.write(f'total_points={total}\n')
+  print(f"::notice title=Autograding complete::Points {obtained}/{total}")
+  print(f"::notice title=Autograding report::{{\"totalPoints\":{obtained},\"maxPoints\":{total}}}")
+
 code = base64.b64decode(code)
 full = 0
 
@@ -31,7 +41,7 @@ try:
 except:
     print("[!]Failed to compile and start xv6 with testsuite")
     print("[!]Compile log:", p.recvall().decode('latin-1'))
-    print(f"Your score: {points}")
+    post_to_gh(0, 70)
     exit(1)
 
 direction = None
@@ -73,10 +83,10 @@ except:
     print("[!]Scheduler does not work as expected")
     if errors:
         print(f"[!]Errors for your scheudler: {sum(errors)/len(errors):.2f}")
-    print(f"Your score: 0")
+    post_to_gh(0, 70)
     exit(1)
 
 print(f"[!]Errors for your scheudler: {sum(errors)/len(errors):.2f}")
 print("[!]All check passed!")
 print("=======")
-print(f"Your score: 70 / 70")
+post_to_gh(0, 70)
