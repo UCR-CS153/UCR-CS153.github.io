@@ -17,9 +17,11 @@ def post_to_gh(obtained, total):
   """
   Write points to for GitHub Actions
   """
-  with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
-      out.write(f'points={obtained}\n')
-      out.write(f'total_points={total}\n')
+  fd = os.environ.get('GITHUB_OUTPUT')
+  if fd is not None:
+    with open(fd, 'a') as out:
+        out.write(f'points={obtained}\n')
+        out.write(f'total_points={total}\n')
   print(f"::notice title=Autograding complete::Points {obtained}/{total}")
   print(f"::notice title=Autograding report::{{\"totalPoints\":{obtained},\"maxPoints\":{total}}}")
 
@@ -53,7 +55,7 @@ try:
         stamps = []
         for _ in range(3):
             line = p.recvline_regex(r"p i:(\d+) t:(\d+)".encode()).decode()
-            # print(line)
+            print(line)
             pid, stamp = re.findall(r"p i:(\d+) t:(\d+)", line)[0]
             pids.append(int(pid))
             stamps.append(int(stamp))
@@ -63,30 +65,32 @@ try:
         elif pids[0] > pids[1] > pids[2]:
             cur_direction = 'd'
         else:
-            raise Exception("")
-        # print(direction, cur_direction)
+            raise Exception("Invalid execution sequence.")
+        print(direction, cur_direction)
         if direction is None:
             direction = cur_direction
         elif direction != cur_direction:
-            raise Exception("")
+            raise Exception("Execution sequence doesn't match in subsequent runs.")
         
         diff1 = stamps[1] - stamps[0]
         diff2 = stamps[2] - stamps[1]
 
         var = abs((diff1 / diff2) - 1)
         errors.append(var)
-        if var > 0.15 or diff1 < 3 or diff2 < 3:
-            raise Exception("")
-        
-
-except:
-    print("[!]Scheduler does not work as expected")
+        if var > 0.15:
+            raise Exception(f"Too large variation in the CPU ticks {var:.2f}")
+        elif diff1 < 3:
+            raise Exception(f"Too small CPU ticks diff between first two processes {diff1}")
+        elif diff2 < 3:
+            raise Exception(f"Too small CPU ticks diff between second two processes {diff2}")
+except Exception as e:
+    print("[!]Scheduler does not work as expected: ", e)
     if errors:
-        print(f"[!]Errors for your scheudler: {sum(errors)/len(errors):.2f}")
+        print(f"[!]Errors for your scheduler: {sum(errors)/len(errors):.2f}")
     post_to_gh(0, 70)
     exit(1)
 
-print(f"[!]Errors for your scheudler: {sum(errors)/len(errors):.2f}")
-print("[!]All check passed!")
+print(f"[!]Errors for your scheduler: {sum(errors)/len(errors):.2f}")
+print("[!]All checks have passed!")
 print("=======")
 post_to_gh(70, 70)
