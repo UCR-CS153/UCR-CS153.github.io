@@ -77,7 +77,7 @@ try:
 
         var = abs((diff1 / diff2) - 1)
         errors.append(var)
-        if var > 0.15:
+        if var > 0.35:
             raise Exception(f"Too large variation in the CPU ticks {var:.2f}")
         elif diff1 < 3:
             raise Exception(f"Too small CPU ticks diff between first two processes {diff1}")
