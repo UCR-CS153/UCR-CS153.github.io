@@ -17,33 +17,33 @@ rubrics = r"""
 
 - points: 5
   cmd: "lab1_autograde 1"
-  expect: "7 0"
+  expect: "8 0"
   note: "Fork failed"
   name: "Exit & Wait - Fork first child process"
 
 - points: 5
-  expect: "7+0"
+  expect: "8+0"
   note: "[Exit & Wait]Failed to obtain correct first child process exit status"
   name: "Exit & Wait - Wait for first child process"
 
 - points: 0
-  expect: "8 -1"
+  expect: "9 -1"
   note: "[Exit & Wait]Fork second child process failed"
   name: "Exit & Wait - Fork second child process"
 
 - points: 15
-  expect: "8+-1"
+  expect: "9+-1"
   note: "[Exit & Wait]Failed to obtain correct second child process exit status"
   name: "Exit & Wait - Wait for second child process"
 
 - points: 0
   cmd: "lab1_autograde 2"
-  expect: "13 17"
+  expect: "14 18"
   note: "[Waitpid]Failed to create 5 child processes"
   name: "Waitpid - create 5 child processes"
 
 - points: 40
-  expect: "12\n12+16+16\n10\n10+14+14\n11\n11+15+15\n9\n9+13+13\n13\n13+17+17"
+  expect: "14\n14+18+18\n12\n12+16+16\n13\n13+17+17\n11\n11+15+15\n15\n15+19+19"
   note: "[Waitpid]Child process exit status is incorrect"
   name: "Waitpid - check 5 child processes exit status"
 
@@ -122,7 +122,7 @@ for rubric in rubrics:
     try:
         if "cmd" in rubric:
             p.sendline(rubric["cmd"].encode())
-        recv = p.recvuntil(rubric["expect"].encode(), timeout=10).decode('latin-1')
+        recv = p.recvuntil(rubric["expect"].encode(), timeout=5).decode('latin-1')
         if rubric["expect"] not in recv:
             raise Exception("Wrong output")
         points += rubric["points"]
