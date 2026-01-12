@@ -26,11 +26,6 @@ rubrics = r"""
   note: "[Exit & Wait]Failed to obtain correct first child process exit status"
   name: "Exit & Wait - Wait for first child process"
 
-- points: 0
-  expect: "Child 2: Match -1"
-  note: "[Exit & Wait]Failed to obtain correct second child process exit status (Checking logic)"
-  name: "Exit & Wait - Wait for second child process (Logic Check)"
-
 - points: 15
   expect: "Child 2: Match -1"
   note: "[Exit & Wait]Failed to obtain correct second child process exit status"
