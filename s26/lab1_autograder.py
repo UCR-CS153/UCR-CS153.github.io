@@ -1,11 +1,11 @@
 rubrics = r"""
-- points: 5
+- points: 10
   cmd: "lab1_autograde 1"
   expect: "4 0"
   note: "Fork failed"
   name: "Exit & Wait - Fork first child process"
 
-- points: 5
+- points: 10
   expect: "4+0"
   note: "[Exit & Wait]Failed to obtain correct first child process exit status"
   name: "Exit & Wait - Wait for first child process"
@@ -15,7 +15,7 @@ rubrics = r"""
   note: "[Exit & Wait]Fork second child process failed"
   name: "Exit & Wait - Fork second child process"
 
-- points: 15
+- points: 20
   expect: "5+-1"
   note: "[Exit & Wait]Failed to obtain correct second child process exit status"
   name: "Exit & Wait - Wait for second child process"
@@ -26,7 +26,7 @@ rubrics = r"""
   note: "[Waitpid]Failed to create 5 child processes"
   name: "Waitpid - create 5 child processes"
 
-- points: 40
+- points: 35
   expect: "10\n10+14+14\n8\n8+12+12\n9\n9+13+13\n7\n7+11+11\n11\n11+15+15"
   note: "[Waitpid]Child process exit status is incorrect"
   name: "Waitpid - check 5 child processes exit status"
