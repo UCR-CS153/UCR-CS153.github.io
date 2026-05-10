@@ -11,7 +11,6 @@ export DEBIAN_FRONTEND=noninteractive
 rm -f /etc/apt/sources.list.d/yarn.list /etc/apt/sources.list.d/yarn-stable.list || true
 
 apt-get update
-apt-get upgrade -y
 
 # Core: xv6 is RISC-V (rv64). Needs qemu-system-riscv64 + riscv64-unknown-elf toolchain.
 # gcc-riscv64-unknown-elf pulls binutils-riscv64-unknown-elf.
