@@ -29,7 +29,7 @@ import requests
 
 
 ORG = "UCR-CS153"
-ASSIGNMENT_REPO_PREFIX = "lab1-student"
+ASSIGNMENT_REPO_PREFIX = "lab2-student"
 API_URL_BASE = "https://api.github.com"
 DEFAULT_PER_PAGE = 100
 
@@ -434,6 +434,54 @@ def score_student(
     return base_row
 
 
+ERROR_TYPE_ORDER = {
+    "no_workflow_runs": 0,
+    "no_completed_runs": 1,
+    "no_score_found": 2,
+    "list_workflow_runs_failed": 3,
+    "other": 4,
+}
+
+
+def error_type_for_row(row: Dict[str, Any]) -> str:
+    status = str(row.get("status") or "")
+    error = str(row.get("error") or "")
+
+    if status == "no_workflow_runs":
+        return "no_workflow_runs"
+    if error.startswith("no completed workflow runs"):
+        return "no_completed_runs"
+    if error.startswith("no score found in completed workflow runs"):
+        return "no_score_found"
+    if error.startswith("list_workflow_runs failed"):
+        return "list_workflow_runs_failed"
+    return "other"
+
+
+def sort_rows_for_output(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def sort_key(row: Dict[str, Any]) -> Tuple[int, int, str, str, str]:
+        has_grade = row.get("status") == "graded" and row.get("score") != ""
+        if has_grade:
+            return (
+                0,
+                0,
+                "",
+                str(row.get("UCR_NetID") or ""),
+                str(row.get("github_username") or ""),
+            )
+
+        error_type = error_type_for_row(row)
+        return (
+            1,
+            ERROR_TYPE_ORDER.get(error_type, ERROR_TYPE_ORDER["other"]),
+            error_type,
+            str(row.get("UCR_NetID") or ""),
+            str(row.get("github_username") or ""),
+        )
+
+    return sorted(rows, key=sort_key)
+
+
 def write_csv(path: str, rows: List[Dict[str, Any]]) -> None:
     fieldnames = [
         "repo_URL",
@@ -546,7 +594,7 @@ def main() -> int:
             row["error"],
         )
 
-    write_csv(args.output, rows)
+    write_csv(args.output, sort_rows_for_output(rows))
 
     graded = sum(1 for row in rows if row["status"] == "graded")
     errors = sum(1 for row in rows if row["status"] != "graded")
