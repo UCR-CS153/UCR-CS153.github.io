@@ -112,17 +112,49 @@ def wait_for_prompt(proc, timeout: float = 20.0) -> bytes:
     return proc.recvuntil(XV6_PROMPT, timeout=timeout)
 
 
+def synchronize_shell(proc, timeout: float = 5.0) -> None:
+    """Force xv6 to emit a fresh prompt, avoiding stale buffered prompts."""
+    proc.sendline(b"")
+    proc.recvuntil(XV6_PROMPT, timeout=timeout)
+
+
 def run_xv6_command(proc, command: str, timeout: float = 5.0) -> str:
+    # A repository may leave an additional prompt buffered during boot. If that
+    # stale prompt is consumed after sending the command, the captured output is
+    # just "$ " and the test is incorrectly reported as failed. Synchronizing
+    # with a blank command guarantees that the next prompt belongs to this run.
+    synchronize_shell(proc, timeout=min(timeout, 5.0))
     proc.sendline(command.encode())
-    output = wait_for_prompt(proc, timeout=timeout)
+    output = proc.recvuntil(XV6_PROMPT, timeout=timeout)
     return output.decode("latin-1", errors="replace")
 
 
 def parse_last_hex_address(output: str) -> int:
-    # xv6 %p output may include either 0x prefix or plain hexadecimal.
-    candidates = re.findall(r"(?im)^\s*(?:0x)?([0-9a-f]+)\s*$", output)
+    """Parse xv6 printf("%p") output with or without a 0x prefix."""
+    candidates = []
+
+    # Prefer a line containing only the address. This avoids interpreting
+    # numeric command-line arguments in the echoed shell command as addresses.
+    for line in output.replace("\r", "").splitlines():
+        match = re.fullmatch(r"\s*(?:0x)?([0-9a-fA-F]{6,16})\s*", line)
+        if match:
+            candidates.append(match.group(1))
+
+    # Some xv6 console implementations place shell text and program output on
+    # the same line. Fall back to any pointer-sized hexadecimal token.
     if not candidates:
-        raise GradeFailure(f"Could not parse stack address from output:\n{output}")
+        candidates = re.findall(
+            r"(?<![0-9A-Za-z])(?:0x)?([0-9a-fA-F]{7,16})(?![0-9A-Za-z])",
+            output,
+        )
+
+    if not candidates:
+        visible = output.replace("\r", "\\r").replace("\n", "\\n\n")
+        raise GradeFailure(
+            "Could not parse stack address from xv6 output. "
+            f"Captured output was:\n{visible}"
+        )
+
     return int(candidates[-1], 16)
 
 
