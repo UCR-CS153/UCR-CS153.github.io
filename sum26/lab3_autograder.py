@@ -1,30 +1,35 @@
 #!/usr/bin/env python3
 
-import atexit
 import os
+
+# These must be set before importing pwntools.
+os.environ.setdefault("TERM", "xterm")
+os.environ.setdefault("PWNLIB_NOTERM", "1")
+
+import atexit
 import random
 import re
 import subprocess
 import sys
-import time
 from pathlib import Path
 
-from pwn import context, process
+from pwn import PTY, context, process
 
 
 TOTAL_POINTS = 80
 STACK_LAYOUT_POINTS = 75
 STACK_GROWTH_POINTS = 5
 
-MAKEFILE_PATH = Path("Makefile")
+MAKEFILE = Path("Makefile")
 
-TEST1_PROGRAM = "test1"
-GROWTH_PROGRAM = "lab2"
+LAYOUT_NAME = "lab3_stack_layout_test"
+GROWTH_NAME = "lab3_stack_growth_test"
 
 ADDRESS_MIN = 0x7FFF0000
 ADDRESS_MAX = 0x80000000
 
-TEST1_SOURCE = r'''
+
+LAYOUT_SOURCE = r"""
 #include "types.h"
 #include "stat.h"
 #include "user.h"
@@ -36,16 +41,13 @@ main(int argc, char *argv[])
   printf(1, "%p\n", &v);
   exit();
 }
-'''
+"""
 
-LAB2_SOURCE = r'''
+
+GROWTH_SOURCE = r"""
 #include "types.h"
 #include "user.h"
 
-/*
- * Prevent GCC from replacing the recursive function with an optimized
- * closed-form or loop implementation.
- */
 #pragma GCC push_options
 #pragma GCC optimize ("O0")
 
@@ -72,268 +74,181 @@ main(int argc, char *argv[])
   }
 
   n = atoi(argv[1]);
-
   printf(1, "Lab 4: Recursing %d levels\n", n);
 
   result = recurse(n);
 
   printf(1, "Lab 4: Yielded a value of %d\n", result);
-
   exit();
 }
-'''
+"""
 
 
-class GradingError(Exception):
+class GradeError(Exception):
     pass
 
 
-def update_makefile(makefile_content, program_names):
-    """
-    Add the autograder programs to the xv6 UPROGS section.
-    """
-
-    # Some student repositories fail because of compiler warnings.
-    makefile_content = makefile_content.replace(" -Werror", " ")
+def modify_makefile(contents, programs):
+    contents = contents.replace(" -Werror", " ")
 
     match = re.search(
         r"(?ms)^UPROGS\s*=\s*(.*?)(?=^fs\.img\s*:)",
-        makefile_content,
+        contents,
     )
 
-    if match is None:
-        raise GradingError(
-            "Could not locate the UPROGS section in the Makefile."
+    if not match:
+        raise GradeError("Could not find the UPROGS section in Makefile.")
+
+    old_block = match.group(1)
+    existing = re.findall(r"_([A-Za-z0-9_.-]+)", old_block)
+
+    for program in programs:
+        if program not in existing:
+            existing.append(program)
+
+    new_block = "UPROGS=\\\n"
+    for program in existing:
+        new_block += "\t_{}\\\n".format(program)
+    new_block += "\n"
+
+    return contents[:match.start()] + new_block + contents[match.end():]
+
+
+def boot_xv6():
+    env = os.environ.copy()
+    env["TERM"] = "xterm"
+    env["PWNLIB_NOTERM"] = "1"
+
+    proc = process(
+        ["make", "qemu-nox"],
+        stdin=PTY,
+        stdout=PTY,
+        stderr=PTY,
+        env=env,
+    )
+
+    try:
+        boot_output = proc.recvuntil(b"init: starting sh", timeout=60)
+        proc.recvuntil(b"$ ", timeout=15)
+    except Exception:
+        remaining = proc.recvrepeat(2)
+        combined = boot_output if "boot_output" in locals() else b""
+        combined += remaining
+
+        raise GradeError(
+            "xv6 failed to compile, boot, or reach its shell.\n"
+            + combined.decode("latin-1", errors="replace")
         )
 
-    uprogs_block = match.group(1)
-
-    existing_programs = re.findall(
-        r"_([A-Za-z0-9_.-]+)",
-        uprogs_block,
-    )
-
-    for program_name in program_names:
-        if program_name not in existing_programs:
-            existing_programs.append(program_name)
-
-    new_uprogs = "UPROGS=\\\n"
-
-    for program_name in existing_programs:
-        new_uprogs += "\t_{}\\\n".format(program_name)
-
-    new_uprogs += "\n"
-
-    return (
-        makefile_content[:match.start()]
-        + new_uprogs
-        + makefile_content[match.end():]
-    )
+    return proc
 
 
-def receive_until_shell(proc, timeout=10):
-    """
-    Read xv6 output until a shell prompt is observed.
+def run_layout_test(proc, argument_count):
+    arguments = " ".join(str(i) for i in range(1, argument_count + 1))
+    command = LAYOUT_NAME
 
-    This is used only for synchronization. Test values are parsed directly
-    from complete output lines.
-    """
+    if arguments:
+        command += " " + arguments
 
-    output = bytearray()
-    deadline = time.time() + timeout
+    proc.sendline(command.encode())
 
-    while time.time() < deadline:
-        try:
-            chunk = proc.recv(timeout=0.25)
-        except EOFError:
-            break
-
-        if not chunk:
-            continue
-
-        output.extend(chunk)
-
-        normalized = bytes(output).replace(b"\r", b"")
-
-        if normalized.endswith(b"\n$ ") or normalized.endswith(b"\n$"):
-            break
-
-    return bytes(output)
-
-
-def wait_for_xv6_shell(proc, timeout=40):
-    """
-    Wait until xv6 finishes booting and starts its shell.
-    """
-
-    output = bytearray()
-    deadline = time.time() + timeout
-
-    while time.time() < deadline:
-        try:
-            chunk = proc.recv(timeout=0.5)
-        except EOFError:
-            break
-
-        if not chunk:
-            continue
-
-        output.extend(chunk)
-
-        normalized = bytes(output).replace(b"\r", b"")
-
-        if b"init: starting sh" in normalized:
-            if normalized.endswith(b"\n$ ") or normalized.endswith(b"\n$"):
-                return bytes(output)
-
-            remaining = receive_until_shell(proc, timeout=10)
-            output.extend(remaining)
-            return bytes(output)
-
-    raise GradingError(
-        "xv6 did not reach the shell.\n\n"
-        + output.decode("latin-1", errors="replace")
-    )
-
-
-def run_xv6_command(proc, command, timeout=10):
-    """
-    Execute one command in xv6 and collect its complete output.
-
-    The old shell prompt is removed before sending the command. Output is then
-    read until xv6 prints the next shell prompt.
-    """
-
-    # Remove an old buffered shell prompt.
-    proc.clean(timeout=0.15)
-
-    proc.sendline(command.encode("ascii"))
-
-    output = bytearray()
-    deadline = time.time() + timeout
-
-    while time.time() < deadline:
-        try:
-            chunk = proc.recv(timeout=0.25)
-        except EOFError:
-            break
-
-        if not chunk:
-            continue
-
-        output.extend(chunk)
-
-        normalized = bytes(output).replace(b"\r", b"")
-
-        if normalized.endswith(b"\n$ ") or normalized.endswith(b"\n$"):
-            break
-
-    decoded = bytes(output).decode("latin-1", errors="replace")
-
-    if not decoded.strip():
-        raise GradingError(
-            "No output was captured for command: {}".format(command)
+    try:
+        # Wait directly for a complete pointer line such as:
+        # 7FFFFFBC
+        matched = proc.recvline_regex(
+            rb"^\s*(?:0x)?[0-9A-Fa-f]{8}\s*$",
+            timeout=10,
+        )
+    except Exception:
+        captured = proc.recvrepeat(1)
+        raise GradeError(
+            "Could not parse stack address after command {!r}.\n"
+            "Captured output was: {!r}".format(
+                command,
+                captured.decode("latin-1", errors="replace"),
+            )
         )
 
-    return decoded
+    text = matched.decode("latin-1", errors="replace").strip()
+    address_match = re.search(r"(?:0x)?([0-9A-Fa-f]{8})", text)
 
-
-def parse_stack_address(output):
-    """
-    Parse an xv6 pointer printed as, for example:
-
-        7FFFFFBC
-
-    Both eight-digit values and values prefixed with 0x are accepted.
-    """
-
-    normalized = output.replace("\r", "")
-
-    # Prefer a line containing only the address.
-    matches = re.findall(
-        r"(?im)^\s*(?:0x)?([0-9a-f]{8})\s*$",
-        normalized,
-    )
-
-    if not matches:
-        # Fallback for repositories that print extra text on the same line.
-        matches = re.findall(
-            r"(?i)(?<![0-9a-f])(?:0x)?([0-9a-f]{8})(?![0-9a-f])",
-            normalized,
+    if not address_match:
+        raise GradeError(
+            "Matched a line but could not extract its address: {!r}".format(text)
         )
 
-    if not matches:
-        raise GradingError(
-            "Could not parse the stack address.\n"
-            "Captured xv6 output: {!r}".format(output)
+    address = int(address_match.group(1), 16)
+
+    # Consume the prompt printed after the program exits.
+    try:
+        proc.recvuntil(b"$ ", timeout=10)
+    except Exception:
+        raise GradeError(
+            "The xv6 shell prompt did not return after command {!r}.".format(
+                command
+            )
         )
 
-    return int(matches[-1], 16)
+    return address
 
 
-def parse_growth_result(output):
-    """
-    Parse:
+def run_growth_test(proc, depth):
+    command = "{} {}".format(GROWTH_NAME, depth)
+    proc.sendline(command.encode())
 
-        Lab 4: Yielded a value of <number>
-    """
+    try:
+        line = proc.recvline_regex(
+            rb"Lab 4: Yielded a value of\s+-?[0-9]+",
+            timeout=20,
+        )
+    except Exception:
+        captured = proc.recvrepeat(1)
+        raise GradeError(
+            "Could not parse stack-growth output after command {!r}.\n"
+            "Captured output was: {!r}".format(
+                command,
+                captured.decode("latin-1", errors="replace"),
+            )
+        )
+
+    text = line.decode("latin-1", errors="replace")
 
     match = re.search(
-        r"Lab\s+4:\s*Yielded\s+a\s+value\s+of\s+(-?\d+)",
-        output,
-        re.IGNORECASE,
+        r"Lab 4: Yielded a value of\s+(-?[0-9]+)",
+        text,
     )
 
-    if match is None:
-        raise GradingError(
-            "Could not parse the recursion result.\n"
-            "Captured xv6 output: {!r}".format(output)
+    if not match:
+        raise GradeError(
+            "Could not extract the stack-growth result from {!r}.".format(text)
         )
 
-    return int(match.group(1))
+    result = int(match.group(1))
+
+    try:
+        proc.recvuntil(b"$ ", timeout=10)
+    except Exception:
+        raise GradeError(
+            "The xv6 shell prompt did not return after command {!r}.".format(
+                command
+            )
+        )
+
+    return result
 
 
-def test_stack_layout(proc):
-    """
-    Verify:
-
-    1. The user stack is near 0x80000000.
-    2. Equal argument counts produce equal stack addresses.
-    3. Increasing argument counts move the stack downward.
-    """
-
+def grade_layout(proc):
     addresses = {}
 
-    # Test each argument count at least once.
-    argument_counts = list(range(1, 8))
+    test_counts = list(range(1, 8))
+    test_counts += [random.randint(1, 7) for _ in range(20)]
+    random.shuffle(test_counts)
 
-    # Repeat random argument counts to check consistency.
-    for _ in range(25):
-        argument_counts.append(random.randint(1, 7))
+    for supplied_arguments in test_counts:
+        address = run_layout_test(proc, supplied_arguments)
 
-    random.shuffle(argument_counts)
-
-    for extra_argument_count in argument_counts:
-        arguments = " ".join(
-            str(value)
-            for value in range(1, extra_argument_count + 1)
-        )
-
-        command = TEST1_PROGRAM
-
-        if arguments:
-            command += " " + arguments
-
-        output = run_xv6_command(
-            proc,
-            command,
-            timeout=8,
-        )
-
-        address = parse_stack_address(output)
-
-        # argc contains the program name in addition to supplied arguments.
-        argc = extra_argument_count + 1
+        # argc includes the program name.
+        argc = supplied_arguments + 1
 
         print(
             "[TEST] argc={} address={:08X}".format(
@@ -343,40 +258,32 @@ def test_stack_layout(proc):
         )
 
         if not (ADDRESS_MIN <= address < ADDRESS_MAX):
-            raise GradingError(
-                "Stack address {:08X} for argc={} is outside the "
-                "expected range [{:08X}, {:08X}).".format(
+            raise GradeError(
+                "Address {:08X} is outside [{:08X}, {:08X}).".format(
                     address,
-                    argc,
                     ADDRESS_MIN,
                     ADDRESS_MAX,
                 )
             )
 
-        if argc in addresses:
-            if addresses[argc] != address:
-                raise GradingError(
-                    "The same argument count produced different addresses.\n"
-                    "argc={}: {:08X} and {:08X}".format(
-                        argc,
-                        addresses[argc],
-                        address,
-                    )
-                )
-        else:
-            addresses[argc] = address
+        if argc in addresses and addresses[argc] != address:
+            raise GradeError(
+                "argc={} produced inconsistent addresses: {:08X} and {:08X}."
+                .format(argc, addresses[argc], address)
+            )
 
-    sorted_addresses = sorted(addresses.items())
+        addresses[argc] = address
 
-    address_changed = False
+    ordered = sorted(addresses.items())
+    moved_down = False
 
-    for index in range(1, len(sorted_addresses)):
-        previous_argc, previous_address = sorted_addresses[index - 1]
-        current_argc, current_address = sorted_addresses[index]
+    for index in range(1, len(ordered)):
+        previous_argc, previous_address = ordered[index - 1]
+        current_argc, current_address = ordered[index]
 
         if current_address > previous_address:
-            raise GradingError(
-                "The stack address moved upward when argc increased.\n"
+            raise GradeError(
+                "Stack moved upward as argc increased:\n"
                 "argc={} -> {:08X}\n"
                 "argc={} -> {:08X}".format(
                     previous_argc,
@@ -387,125 +294,97 @@ def test_stack_layout(proc):
             )
 
         if current_address < previous_address:
-            address_changed = True
+            moved_down = True
 
-    if not address_changed:
-        raise GradingError(
-            "The stack address did not move when the argument count increased."
+    if not moved_down:
+        raise GradeError(
+            "Stack address never moved downward as argument count increased."
         )
 
     return addresses
 
 
-def test_stack_growth(proc):
-    """
-    Force the stack to grow across multiple pages using recursion.
-    """
+def grade_growth(proc):
+    depths = random.sample(range(500, 1001, 50), 3)
 
-    # Use several depths so a hard-coded implementation is less likely to pass.
-    possible_depths = list(range(500, 1001, 50))
-    test_depths = random.sample(possible_depths, 3)
-
-    for depth in test_depths:
-        command = "{} {}".format(
-            GROWTH_PROGRAM,
-            depth,
-        )
-
-        output = run_xv6_command(
-            proc,
-            command,
-            timeout=15,
-        )
-
-        actual_result = parse_growth_result(output)
-        expected_result = depth * (depth + 1) // 2
+    for depth in depths:
+        actual = run_growth_test(proc, depth)
+        expected = depth * (depth + 1) // 2
 
         print(
-            "[TEST] recursion depth={} expected={} actual={}".format(
+            "[TEST] depth={} expected={} actual={}".format(
                 depth,
-                expected_result,
-                actual_result,
+                expected,
+                actual,
             )
         )
 
-        if actual_result != expected_result:
-            raise GradingError(
-                "Incorrect recursion result at depth {}. "
-                "Expected {}, but received {}.".format(
-                    depth,
-                    expected_result,
-                    actual_result,
-                )
+        if actual != expected:
+            raise GradeError(
+                "Incorrect result at depth {}: expected {}, received {}."
+                .format(depth, expected, actual)
             )
 
-    return test_depths
+    return depths
 
 
 def main():
     context.log_level = "error"
-    os.environ.setdefault("TERM", "xterm")
 
-    random.seed()
-
-    if not MAKEFILE_PATH.exists():
-        print("[!] Makefile was not found.")
-        print("[!] Run the autograder from the xv6 repository root.")
+    if not MAKEFILE.exists():
+        print("[!] Makefile not found.")
+        print("[!] Run this script from the xv6 repository root.")
         print("Your score: 0 / {}".format(TOTAL_POINTS))
         return 1
 
-    original_makefile = MAKEFILE_PATH.read_bytes()
+    original_makefile = MAKEFILE.read_bytes()
 
-    generated_files = [
-        Path(TEST1_PROGRAM + ".c"),
-        Path(GROWTH_PROGRAM + ".c"),
+    generated_paths = [
+        Path(LAYOUT_NAME + ".c"),
+        Path(GROWTH_NAME + ".c"),
     ]
 
-    original_generated_files = {}
+    previous_files = {
+        path: path.read_bytes() if path.exists() else None
+        for path in generated_paths
+    }
 
-    for path in generated_files:
-        if path.exists():
-            original_generated_files[path] = path.read_bytes()
-        else:
-            original_generated_files[path] = None
-
-    qemu_process = None
+    qemu = None
     score = 0
 
-    def restore_repository():
-        nonlocal qemu_process
+    def restore():
+        nonlocal qemu
 
-        if qemu_process is not None:
+        if qemu is not None:
             try:
-                qemu_process.close()
+                qemu.close()
             except Exception:
                 pass
 
         try:
-            MAKEFILE_PATH.write_bytes(original_makefile)
+            MAKEFILE.write_bytes(original_makefile)
         except Exception:
             pass
 
-        for path, original_content in original_generated_files.items():
+        for path, prior_content in previous_files.items():
             try:
-                if original_content is None:
+                if prior_content is None:
                     if path.exists():
                         path.unlink()
                 else:
-                    path.write_bytes(original_content)
+                    path.write_bytes(prior_content)
             except Exception:
                 pass
 
-    atexit.register(restore_repository)
+    atexit.register(restore)
 
     try:
-        Path(TEST1_PROGRAM + ".c").write_text(
-            TEST1_SOURCE,
+        Path(LAYOUT_NAME + ".c").write_text(
+            LAYOUT_SOURCE,
             encoding="utf-8",
         )
-
-        Path(GROWTH_PROGRAM + ".c").write_text(
-            LAB2_SOURCE,
+        Path(GROWTH_NAME + ".c").write_text(
+            GROWTH_SOURCE,
             encoding="utf-8",
         )
 
@@ -514,19 +393,17 @@ def main():
             errors="replace",
         )
 
-        updated_makefile = update_makefile(
-            makefile_text,
-            [TEST1_PROGRAM, GROWTH_PROGRAM],
-        )
-
-        MAKEFILE_PATH.write_text(
-            updated_makefile,
+        MAKEFILE.write_text(
+            modify_makefile(
+                makefile_text,
+                [LAYOUT_NAME, GROWTH_NAME],
+            ),
             encoding="utf-8",
         )
 
-        print("[*] Cleaning repository...")
+        print("[*] Running make clean...")
 
-        clean_result = subprocess.run(
+        clean = subprocess.run(
             ["make", "clean"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -534,105 +411,45 @@ def main():
             timeout=120,
         )
 
-        if clean_result.returncode != 0:
-            raise GradingError(
-                "make clean failed:\n{}".format(clean_result.stdout)
-            )
+        if clean.returncode != 0:
+            raise GradeError("make clean failed:\n" + clean.stdout)
 
-        print("[*] Building and starting xv6...")
+        print("[*] Building and booting xv6...")
+        qemu = boot_xv6()
 
-        environment = os.environ.copy()
-        environment.setdefault("TERM", "xterm")
-
-        qemu_process = process(
-            ["make", "qemu-nox"],
-            env=environment,
-        )
-
-        try:
-            wait_for_xv6_shell(
-                qemu_process,
-                timeout=60,
-            )
-        except GradingError:
-            remaining_output = qemu_process.recvrepeat(1).decode(
-                "latin-1",
-                errors="replace",
-            )
-
-            raise GradingError(
-                "xv6 failed to compile, boot, or reach its shell.\n"
-                + remaining_output
-            )
-
-        print("[*] Testing the new user-stack layout...")
-
-        addresses = test_stack_layout(qemu_process)
-
+        print("[*] Testing new stack layout...")
+        addresses = grade_layout(qemu)
         score += STACK_LAYOUT_POINTS
 
-        print("[+] Stack-layout tests passed.")
-
+        print("[+] Stack-layout test passed.")
         for argc, address in sorted(addresses.items()):
-            print(
-                "    argc={} -> {:08X}".format(
-                    argc,
-                    address,
-                )
-            )
-
-        print(
-            "[+] Score: {} / {}".format(
-                score,
-                TOTAL_POINTS,
-            )
-        )
+            print("    argc={} -> {:08X}".format(argc, address))
+        print("[+] Score: {} / {}".format(score, TOTAL_POINTS))
 
         print("[*] Testing automatic stack growth...")
-
-        depths = test_stack_growth(qemu_process)
-
+        depths = grade_growth(qemu)
         score += STACK_GROWTH_POINTS
 
         print(
-            "[+] Stack-growth tests passed for depths: {}".format(
+            "[+] Stack-growth test passed at depths: {}".format(
                 ", ".join(str(depth) for depth in depths)
             )
         )
 
-        print(
-            "[+] Score: {} / {}".format(
-                score,
-                TOTAL_POINTS,
-            )
-        )
-
     except subprocess.TimeoutExpired as error:
-        print("[!] A build command timed out: {}".format(error))
-        print(
-            "Your score: {} / {}".format(
-                score,
-                TOTAL_POINTS,
-            )
-        )
+        print("[!] Build command timed out: {}".format(error))
+        print("Your score: {} / {}".format(score, TOTAL_POINTS))
         return 1
 
-    except GradingError as error:
+    except GradeError as error:
         print("[!] {}".format(error))
 
         if score == STACK_LAYOUT_POINTS:
-            print(
-                "[!] Stack growth failed, but stack-layout credit is retained."
-            )
+            print("[!] Stack-growth verification failed.")
         else:
             print("[!] Stack-layout verification failed.")
 
-        print(
-            "Your score: {} / {}".format(
-                score,
-                TOTAL_POINTS,
-            )
-        )
+        print("Your score: {} / {}".format(score, TOTAL_POINTS))
         return 1
 
     except Exception as error:
@@ -642,24 +459,12 @@ def main():
                 error,
             )
         )
-
-        print(
-            "Your score: {} / {}".format(
-                score,
-                TOTAL_POINTS,
-            )
-        )
+        print("Your score: {} / {}".format(score, TOTAL_POINTS))
         return 1
 
-    print("[!] All checks finished successfully.")
+    print("[!] All checks finished.")
     print("=======")
-    print(
-        "Your score: {} / {}".format(
-            score,
-            TOTAL_POINTS,
-        )
-    )
-
+    print("Your score: {} / {}".format(score, TOTAL_POINTS))
     return 0
 
 
