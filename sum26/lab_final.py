@@ -4,12 +4,12 @@ CS153 Lab 3 Autograder — Shared Memory + Memory Translation Syscall
 ====================================================================
 Grades an xv6 repo on three items (30 points total):
 
-  * shm_open()       ... 15 pts  (shm_cnt: two forked processes share a page,
+  * shm_open()       ... 10 pts  (shm_cnt: two forked processes share a page,
                                   final counter must reach 20000)
   * shm_close()      ...  5 pts  (grader test: open -> write pattern -> close ->
                                   reopen must yield a FRESH page, and the kernel
                                   must not panic when the process exits)
-  * check_address()  ... 10 pts  (grader test: mapped user address prints
+  * check_address()  ... 5 pts  (grader test: mapped user address prints
                                   physical addr / user-kernel / read-write info;
                                   unmapped address returns 1)
 
@@ -38,9 +38,9 @@ import time
 # ---------------------------------------------------------------------------
 # Points
 # ---------------------------------------------------------------------------
-PTS_SHM_OPEN = 15
+PTS_SHM_OPEN = 10
 PTS_SHM_CLOSE = 5
-PTS_CHECK_ADDR = 10
+PTS_CHECK_ADDR = 5
 PTS_TOTAL = PTS_SHM_OPEN + PTS_SHM_CLOSE + PTS_CHECK_ADDR
 
 # CFLAGS fallback used only if the stock build fails (modern gcc trips
